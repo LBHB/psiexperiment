@@ -385,7 +385,6 @@ class ContextPlugin(PSIPlugin):
         self._namespace.set_values(values)
 
     def _check_for_changes(self):
-        log.debug('Checking for changes')
         for name, state in self._context_item_state.items():
             if name not in self.context_items:
                 log.debug('%s not in context item state. changes pending.', name)
@@ -440,7 +439,7 @@ class ContextPlugin(PSIPlugin):
             self.selectors[name].__setstate__(deepcopy(state))
 
     def _apply_context_item_state(self):
-        state = {n: get_preferences(i) for n, i in self.context_items.items()}
+        state = {n: get_preferences(i) for n, i in self.context_items.items() if isinstance(i, Parameter)}
         self._context_item_state = state
 
     def _revert_context_item_state(self):
