@@ -45,11 +45,12 @@ def merge_results(results, names=['ao_channel']):
 
 class BaseCalibrate(PSIContribution):
 
-    #: Dictionary whose keys are outputs and values are a list of parameters
-    #: needed to determine the calibration frequencies.
+    #: Dictionary whose keys are output names and values are a list of
+    #: parameters needed to determine the calibration frequencies.
     outputs = d_(Dict())
 
-    #: Name of channel to calibrate.
+    #: Name of input connected to channel that needs calibration. To specify
+    #: the channel instead, prefix the string name with `hw_ai::`.
     input_name = d_(Str())
 
     #: Gain to set on output channel.
@@ -79,8 +80,10 @@ class BaseCalibrate(PSIContribution):
         workbench : Enaml workbench
             Enaml workbench instance
         '''
-        ai_channel = controller.get_input(self.input_name).channel
-
+        if self.input_name.startswith('hw_ai::'):
+            ai_channel = controller.get_channel(self.input_name)
+        else:
+            ai_channel = controller.get_input(self.input_name).channel
         results = {}
         for ao_channel, kwargs in self.get_config(controller, core).items():
             log.debug('Running calibration for %s', ao_channel.name)
@@ -241,6 +244,12 @@ class ChirpCalibrate(BaseCalibrate):
     #: Number of repetitions to average
     repetitions = d_(Int(64))
 
+    #: Start frequency of chirp
+    start_frequency = d_(Float(500))
+
+    #: End frequency of chirp
+    end_frequency = d_(Float(50000))
+
     def _default_viewbox_name(self):
         return self.name
 
@@ -249,8 +258,11 @@ class ChirpCalibrate(BaseCalibrate):
         # output name in the dictionary. This is for future compatibility.
         ao = {}
         for output_name, _ in self.outputs.items():
-            output = controller.get_output(output_name)
-            ao[output.channel] = {}
+            if output_name.startswith('hw_ao::'):
+                output_channel = controller.get_channel(output_name)
+            else:
+                output_channel = controller.get_output(output_name).channel
+            ao[output_channel] = {}
         return ao
 
     def run_calibration(self, ao_channel, ai_channel, kwargs):
@@ -261,7 +273,9 @@ class ChirpCalibrate(BaseCalibrate):
             ai_channel_names=[ai_channel.name],
             duration=self.duration,
             iti=self.iti,
-            repetitions=self.repetitions
+            repetitions=self.repetitions,
+            start_frequency=self.start_frequency,
+            end_frequency=self.end_frequency,
         )
         result = result.sort_index()
         sens = result.loc[ai_channel.name, 'sens']
