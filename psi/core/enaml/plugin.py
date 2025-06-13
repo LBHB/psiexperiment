@@ -84,13 +84,15 @@ class PSIPlugin(Plugin):
         children = []
         for extension in point.extensions:
             log.debug('... Found extension %s', extension.id)
-            children.extend(extension.children)
+            for child in extension.children:
+                children.append((child, extension))
             if extension.factory is not None:
-                children.extend(extension.factory(**factory_kw))
+                for child in extension.factory(**factory_kw):
+                    children.append((child, extension))
 
         # Now, group together the items into their respective plugins.
         for plugin_type, unique_attr in plugin_info.items():
-            for item in children:
+            for (item, extension) in children:
                 plugin_items = items.setdefault(plugin_type, {})
                 plugin_item_source = item_source.setdefault(plugin_type, {})
                 if isinstance(item, plugin_type):

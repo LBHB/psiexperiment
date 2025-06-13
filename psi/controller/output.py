@@ -429,6 +429,9 @@ class ContinuousOutput(BaseAnalogOutput):
             return np.zeros(samples, dtype=self.dtype)
         return self.source.next(samples)
 
+    def get_duration(self):
+        return np.inf
+
 
 class ContinuousQueuedOutput(ContinuousOutput):
 
